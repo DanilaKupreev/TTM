@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+<head>
+	{% load static %}
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<link rel="stylesheet" href="{% static 'chat/MainPage.css' %}">
+	<link rel="shortcut icon" href="{% static 'images/chat_icon.png' %}">
+	<title></title>
+</head>
+<body>
+	<header>
+		<img src="{% static 'chat/logo.png' %}">
+	</header>
+	<main>
+		<div class="display">
+			<section id="leftpanel">
+                <h2>Пользователи</h2>
+                <ul class="user-list">
+                    {% for user in users %}
+                        <li>
+                            <a href="{% url 'chat' recipient_username=user.username %}">
+                                {{ user.first_name }}
+                            </a>
+                        </li>
+                    {% endfor %}
+                </ul>
+            </section>
+			<section id="rightpanel">
+
+			</section>
+		</div>
+	</main>
+	<footer>
+		
+	</footer>
+	<script>
+
+
+</script>
+</body>
+</html>
