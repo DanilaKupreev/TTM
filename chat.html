@@ -12,11 +12,15 @@
 <body>
     <header>
         <img src="{% static 'chat/logo.png' %}">
+        <form action="{% url 'search' %}" method="get" class="search">
+          <input name="q" type="text" placeholder="Поиск сотрудника..." style="padding: 1%; min-width: 100%;" value="{{ search_query }}">
+        </form>
     </header>
     <main>
         <div class="display">
             <section id="leftpanel">
                 <h2>Пользователи</h2>
+                <a href="{% url 'MainPage' %}">Сообщение всем</a>
                 <ul class="user-list">
                     {% for user in users %}
                         <li>
@@ -57,6 +61,7 @@
     	<p>По вопросам в IT отдел</p>
     </footer>
 <script>
+
 function getCookie(name) {
     let cookieValue = null;
     if (document.cookie && document.cookie !== '') {
@@ -72,6 +77,7 @@ function getCookie(name) {
     }
     return cookieValue;
 }
+
 
 function loadNewMessages() {
     if ($('.message').length > 0) { // Проверяем, есть ли сообщения на странице
@@ -112,6 +118,7 @@ function loadNewMessages() {
         }
     });
 }
+
 
 function scrollToBottom(messagesContainer) {
   messagesContainer.scrollTop(messagesContainer[0].scrollHeight);
