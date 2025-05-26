@@ -1,0 +1,46 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8">
+	{% load static %}
+	<link rel="stylesheet" href="{% static 'chat/Contactinfo.css' %}">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<title></title>
+</head>
+<body>
+	<header>
+		<div class="shapka">
+			<a href = "{% url 'MainPage' %}"><h1>ТверьТоргМаш</h1></a>
+			<a href = "{% url 'Info1C' %}">Инструкции</a>
+			<a href = "{% url 'Contact2' %}">Контакты</a>
+			<a>Руководящие документы</a>
+			<a>Бланки документов</a>
+		</div>
+	</header>
+
+	<main>
+		<div class="header-block">
+			<img src = "{% static 'chat/logo.png' %}" class="logo">
+			<div>
+				<p>ФИО: {{ task.title }}</p>
+				{% if task.rang %}
+					<p>Должность: {{ task.rang }}</p>
+				{% endif %}
+				{% if task.post %}
+					<p>Почта: {{ task.post }}</p>
+				{% endif %}
+				{% if task.inside_mobile %}	
+					<p>Внутренний номер: {{ task.inside_mobile }}</p>
+				{% endif %}
+				{% if task.mobile %}	
+					<p>Мобильный номер: {{ task.mobile }}</p>
+				{% endif %}
+			</div>
+		</div>
+	</main>
+
+	<footer>
+		<p>По всем вопросам обращаться в IT отдел</p>
+	</footer>
+</body>
+</html>

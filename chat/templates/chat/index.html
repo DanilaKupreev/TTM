@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html>
+<head>
+    {% load static %}
+    <meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<link rel="stylesheet" href="{% static 'chat/MainPage.css' %}">
+	<link rel="shortcut icon" href="{% static 'images/chat_icon.png' %}">
+    <title>Chat with {{ recipient.username }}</title>
+</head>
+<body>
+    <header>
+        <img src="{% static 'chat/logo.png' %}">
+    </header>
+    <main>
+        <div class="display">
+            <section id="leftpanel">
+                <h2>Пользователи</h2>
+                <ul class="user-list">
+                    {% for user in users %}
+                        <li>
+                            <a href="{% url 'chat_view' %}?recipient={{ user.username }}">
+                                {{ user.first_name }}
+                                <span class="unread-indicator" id="unread-count-{{ user.username }}">
+                                </span>
+                            </a>
+                        </li>
+                    {% endfor %}
+                </ul>
+            </section>
+            <section id="rightpanel">
+                {% block content %}
+                    <h1>Чат с {{ recipient.first_name }}</h1>
+                    <div id="chat-log">
+                        
+                    </div>
+                    <div>
+                        <textarea type="text" id="chat-message-input" size="100"></textarea>
+                        <button id="chat-message-submit">Отправить</button>
+                    </div>
+                {% endblock %}
+            </section>
+        </div>
+    </main>
+    <footer style="background-color: lightwhite; font-size: 0.6em; padding-left: 2em;">
+    	<p>По вопросам в IT отдел</p>
+    </footer>
+
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const username1 = "{{ user.username }}";
+            const username2 = "{{ recipient }}";
+            const date = new Date();
+            const timestamp = date.toLocaleTimeString() + ' ' + date.toLocaleDateString();
+            
+            
+            const roomName = generateRoomName(username1, username2); // Функция для генерации roomName
+            console.log("WebSocket Room Name:", roomName); // <--- THIS IS CRITICAL
+
+            const chatSocket = new WebSocket(
+                'ws://' + window.location.host + '/ws/chat/' + roomName + '/'
+            );
+
+            function generateRoomName(user1, user2) {
+                const usernames = [user1, user2].sort();
+                return usernames[0] + '_' + usernames[1];
+            }
+
+
+            function addMessageToChatLog(sender, message, timestamp, isHistory = false) {
+                
+                const chatLog = document.querySelector('#chat-log');
+                if (!chatLog) {
+                    console.error("Chat log element not found!");
+                    return;
+                }
+
+                const messageHTML = `
+                    <div class="message ${isHistory ? 'history-message' : ''}">
+                        <b style="text-align: right; display: block; padding-top: 1em;">${escapeHTML(sender)}:</b></br> <pre style='white-space: pre-wrap; font-size: 1.2em;'>${escapeHTML(message)}</pre></br> <span class="timestamp" style="text-align: right;display: block;">(${escapeHTML(timestamp)})</span>
+                    </div>
+                `;
+
+                chatLog.innerHTML += messageHTML;
+                chatLog.scrollTop = chatLog.scrollHeight; // Scroll to bottom
+            }
+
+            function escapeHTML(string) {
+                let pre = document.createElement('pre');
+                let text = document.createTextNode(string);
+                pre.appendChild(text);
+                return pre.innerHTML;
+            }
+
+            chatSocket.onmessage = function(e) {
+                console.log("RECEIVED ON CLIENT: e.data=" + e.data);
+                try {
+                    const data = JSON.parse(e.data);
+                    const type = data.type;
+
+
+                    if (type === 'message_history') {
+                        const messages = data.messages;
+                        messages.forEach(message => {
+                            const sender = message.sender;
+                            const messageText = message.message;
+                            const timestamp = message.timestamp;
+                            addMessageToChatLog(sender, messageText, timestamp, true); // Mark as history
+                        });
+                    }
+                    else if (type === 'new_message') {
+                        const messageText = data.message;
+                        const sender = data.sender;
+                        const timestamp = data.timestamp;
+                        console.log("NEW_MESSAGE: sender=" + sender + ", message=" + messageText + ", timestamp=" + timestamp);
+                        addMessageToChatLog(sender, messageText, timestamp);
+                    } else if (type === 'notification') {
+                        showNotification(data.message);
+                    }
+                } catch (error) {
+                    console.error("Error processing message:", error);
+                }
+            };
+
+            chatSocket.onopen = function(e) {
+                console.log("WebSocket connection opened");
+            };
+
+            chatSocket.onclose = function(e) {
+                console.error('Chat socket closed unexpectedly');
+            };
+
+            const messageInput = document.querySelector('#chat-message-input');
+            const sendButton = document.querySelector('#chat-message-submit');
+
+            messageInput.focus();
+            messageInput.onkeyup = function(e) {
+                if (e.keyCode === 13) {  // Enter key
+                    sendButton.click();
+                }
+            };
+
+            sendButton.onclick = function(e) {
+                const message = messageInput.value;
+                if (message.trim() !== "") {
+                    chatSocket.send(JSON.stringify({
+                        'message': message,
+                        'sender': username1 // Or currentUsername, depending on your logic
+                    }));
+                    messageInput.value = '';
+                }
+            };
+
+            function showNotification(message) {
+                alert("Новое сообщение: " + message); // Простое уведомление (замени на что-то лучше)
+                //  или
+                // console.log("NEW NOTIFICATION:" + message);
+
+                //  Более продвинутое уведомление:
+                //  1. Создать div элемент для уведомления
+                //  2. Добавить текст сообщения в элемент
+                //  3. Стилизовать элемент (например, position: fixed, top: 0, right: 0, background-color: ...)
+                //  4. Добавить элемент в DOM
+                //  5. Установить setTimeout для автоматического скрытия элемента через несколько секунд
+            }
+
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,45 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8">
+	{% load static %}
+	<link rel="stylesheet" href="{% static 'chat/Info1C.css' %}">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<title></title>
+</head>
+<body>
+	<header>
+		<div class="shapka">
+			<a href = "{% url 'MainPage' %}"><h1>ТверьТоргМаш</h1></a>
+			<a href = "{% url 'Info1C' %}">Инструкции</a>
+			<a href = "{% url 'Contact2' %}">Контакты</a>
+			<a>Руководящие документы</a>
+			<a>Бланки документов</a>
+		</div>
+	</header>
+
+	<main>
+		<div class="header-block">
+			<h1 style="text-align: center;">Инструкция 1С</h1><br/>
+			<p style="font-size: 1.3vw;">Ниже представлено полное пособие по использованию 1С</p>
+			<div class="links">
+				{% for i in array %}
+					<li class="li-block"><a href="{{i.file3.url}}">Договор соглашения и цены поставщика</a></li>
+					<li class="li-block"><a href="{{i.file4.url}}">Инструкция Схемы и Способа обеспечениия</a></li>
+					<li class="li-block"><a href="{{i.file5.url}}">Настройка поддержания запасов</a></li>
+					<li class="li-block"><a href="{{i.file6.url}}">Описание процесса ввода номенклатуры Robolabs</a></li>
+					<li class="li-block"><a href="{{i.file7.url}}">Планирование и контроль расходов ДС</a></li>
+					<li class="li-block"><a href="{{i.file9.url}}">Регламент согласования заявок на расходование денежных средств</a></li>
+					<li class="li-block"><a href="{{i.file10.url}}">Сборка разборка товаров</a></li>
+					<li class="li-block"><a href="{{i.file11.url}}">Схема Производственного Процесса ВERP</a></li>
+					<li class="li-block"><a href="{{i.file12.url}}">Экспорт из Беларусии</a></li>
+				{% endfor %}
+			</div>
+		</div>
+	</main>
+
+	<footer>
+		<p>По всем вопросам обращаться в IT отдел</p>
+	</footer>
+</body>
+</html>

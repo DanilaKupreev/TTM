@@ -1,0 +1,248 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8">
+	{% load static %}
+	<link rel="stylesheet" href="{% static 'chat/Contact2.css' %}">
+
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<title></title>
+</head>
+<body>
+	<header>
+		<div class="shapka">
+			<a href = "{% url 'MainPage' %}"><h1>ТверьТоргМаш</h1></a>
+			<a href = "{% url 'Info1C' %}">Инструкции</a>
+			<a href = "{% url 'Contact2' %}">Контакты</a>
+			<a>Руководящие документы</a>
+			<a>Бланки документов</a>
+		</div>
+	</header>
+
+	<main>
+		<div class="header-block">
+			<h1 style="text-align: center;">Наши сотрудники</h1>
+			
+			<ul class="menu">
+				<li class="redstr">Охрана 1002
+			    	
+				</li>
+				<li class="redstr">Руководство
+			    	<ul>
+			    		<li class="item-li">
+			      			{% for someword in array %}
+			    				{% if someword.siteviev == "Руководство" %}
+			      						<a href="{{someword.id}}">
+			    						{% if someword.title %}
+											<p>{{someword.title}} | 
+										{% endif %}
+										{% if someword.rang %}
+											{{someword.rang}}
+										{% endif %}
+										</p>
+									</a>
+			      				{% endif %}
+							{% endfor %}
+			    		</li>
+			    	</ul>
+				</li>
+				<li class="redstr">
+			  		IT
+				<ul>
+			      <li class="item-li">
+			      	{% for someword in array %}
+			    		{% if someword.siteviev == "IT" %}
+			    			<a href="{{someword.id}}">
+			    				{% if someword.title %}
+									<p>{{someword.title}} | 
+								{% endif %}
+								{% if someword.rang %}
+									{{someword.rang}}
+								{% endif %}
+								</p>
+							</a>
+						{% endif %}
+					{% endfor %}</li>
+			    </ul>
+				</li>
+				<li class="redstr">Кадры
+			    	<ul>
+			    		<li class="item-li">
+			      			{% for someword in array %}
+			    				{% if someword.siteviev == "Кадры" %}
+			      						<a href="{{someword.id}}">
+			    						{% if someword.title %}
+											<p>{{someword.title}} | 
+										{% endif %}
+										{% if someword.rang %}
+											{{someword.rang}}
+										{% endif %}
+										</p>
+									</a>
+			      				{% endif %}
+							{% endfor %}
+			    		</li>
+			    	</ul>
+				</li>
+				<li class="redstr">Конструкторско-технологический отдел
+			    	<ul>
+			    		<li class="item-li">
+			      			{% for someword in array %}
+			    				{% if someword.siteviev == "Конструкторско-технологический отдел" %}
+			      						<a href="{{someword.id}}">
+			    						{% if someword.title %}
+											<p>{{someword.title}} | 
+										{% endif %}
+										{% if someword.rang %}
+											{{someword.rang}}
+										{% endif %}
+										</p>
+									</a>
+			      				{% endif %}
+							{% endfor %}
+			    		</li>
+			    	</ul>
+				</li>
+				<li class="redstr">Бухгалтерия
+			    	<ul>
+			    		<li class="item-li">
+			      			{% for someword in array %}
+			    				{% if someword.siteviev == "Бухгалтерия" %}
+			      						<a href="{{someword.id}}">
+			    						{% if someword.title %}
+											<p>{{someword.title}} | 
+										{% endif %}
+										{% if someword.rang %}
+											{{someword.rang}}
+										{% endif %}
+										</p>
+									</a>
+			      				{% endif %}
+							{% endfor %}
+			    		</li>
+			    	</ul>
+				</li>
+				<li class="redstr">Склад
+			    	<ul>
+			    		<li class="item-li">
+			      			{% for someword in array %}
+			    				{% if someword.siteviev == "Склад" %}
+			      						<a href="{{someword.id}}">
+			    						{% if someword.title %}
+											<p>{{someword.title}} | 
+										{% endif %}
+										{% if someword.rang %}
+											{{someword.rang}}
+										{% endif %}
+										</p>
+									</a>
+			      				{% endif %}
+							{% endfor %}
+			    		</li>
+			    	</ul>
+				</li>
+				<li class="redstr">ОТК
+			    	<ul>
+			    		<li class="item-li">
+			      			{% for someword in array %}
+			    				{% if someword.siteviev == "ОТК" %}
+			      						<a href="{{someword.id}}">
+			    						{% if someword.title %}
+											<p>{{someword.title}} | 
+										{% endif %}
+										{% if someword.rang %}
+											{{someword.rang}}
+										{% endif %}
+										</p>
+									</a>
+			      				{% endif %}
+							{% endfor %}
+			    		</li>
+			    	</ul>
+				</li>
+				<li class="redstr">Снабжение
+			    	<ul>
+			    		<li class="item-li">
+			      			{% for someword in array %}
+			    				{% if someword.siteviev == "Снабжение" %}
+			      						<a href="{{someword.id}}">
+			    						{% if someword.title %}
+											<p>{{someword.title}} | 
+										{% endif %}
+										{% if someword.rang %}
+											{{someword.rang}}
+										{% endif %}
+										</p>
+									</a>
+			      				{% endif %}
+							{% endfor %}
+			    		</li>
+			    	</ul>
+				</li>
+				<li class="redstr">Производство
+			    	<ul>
+			    		<li class="item-li">
+			      			{% for someword in array %}
+			    				{% if someword.siteviev == "Производство" %}
+			      						<a href="{{someword.id}}">
+			    						{% if someword.title %}
+											<p>{{someword.title}} | 
+										{% endif %}
+										{% if someword.rang %}
+											{{someword.rang}}
+										{% endif %}
+										</p>
+									</a>
+			      				{% endif %}
+							{% endfor %}
+			    		</li>
+			    	</ul>
+				</li>
+				<li class="redstr">Охрана труда
+			    	<ul>
+			    		<li class="item-li">
+			      			{% for someword in array %}
+			    				{% if someword.siteviev == "Охрана труда" %}
+			      						<a href="{{someword.id}}">
+			    						{% if someword.title %}
+											<p>{{someword.title}} | 
+										{% endif %}
+										{% if someword.rang %}
+											{{someword.rang}}
+										{% endif %}
+										</p>
+									</a>
+			      				{% endif %}
+							{% endfor %}
+			    		</li>
+			    	</ul>
+				</li>
+				<li class="redstr">Отдел по работе с клиентами
+			    	<ul>
+			    		<li class="item-li">
+			      			{% for someword in array %}
+			    				{% if someword.siteviev == "Отдел по работе с клиентами" %}
+			      						<a href="{{someword.id}}">
+			    						{% if someword.title %}
+											<p>{{someword.title}} | 
+										{% endif %}
+										{% if someword.rang %}
+											{{someword.rang}}
+										{% endif %}
+										</p>
+									</a>
+			      				{% endif %}
+							{% endfor %}
+			    		</li>
+			    	</ul>
+				</li>
+			</ul>
+		</div>
+	</main>
+
+	<footer>
+		<p>По всем вопросам обращаться в IT отдел</p>
+	</footer>
+	<script type="text/javascript" src="{% static 'chat/Contact2.js' %}"></script>
+</body>
+</html>

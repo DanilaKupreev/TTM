@@ -1,0 +1,303 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+	{% load static %}
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<link rel="stylesheet" href="{% static 'chat/MainPage.css' %}">
+    <link rel="shortcut icon" href="{% static 'images/chat_icon.png' %}">
+	<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+	<title>TTM</title>
+</head>
+<body>
+    <header>
+        <img src="{% static 'chat/logo.png' %}">
+        <form action="{% url 'search' %}" method="get" class="search">
+          <input name="q" type="text" placeholder="Поиск сотрудника..." style="padding: 1%; min-width: 100%;" value="{{ search_query }}">
+        </form>
+	<div style="width: 100%; vertical-align: middle; text-align: right; margin-top: 4em;">
+		<a href="{% url 'Site' %}" style="font-size: 1.3em; padding: 2em;">Корпоративный портал</a>
+	</div>
+    </header>
+    <main>
+        <div class="display">
+            <section id="leftpanel">
+                <h2>Пользователи</h2>
+                <a href="{% url 'MainPage' %}">Сообщение всем</a>
+                <ul class="user-list">
+                    {% for user in users %}
+                        <li>
+                            <a href="{% url 'chat' recipient_username=user.username %}">
+                                {{ user.first_name }}
+                                <span class="unread-indicator" id="unread-count-{{ user.username }}" >
+                                </span>
+                            </a>
+                        </li>
+                    {% endfor %}
+                </ul>
+            </section>
+            <section id="rightpanel">
+                {% block content %}
+                <h1>Чат с {{ recipient.first_name }}</h1>
+                <div class="chat-area">
+                    <form method="GET" action="{% url 'chat' recipient.username %}" class="filter-form">
+                        <label for="start_date">Start Date:</label>
+                        <input type="date" id="start_date" name="start_date" value="{{ start_date }}">
+
+                        <label for="end_date">End Date:</label>
+                        <input type="date" id="end_date" name="end_date" value="{{ end_date }}">
+
+                        <button type="submit">Filter by Date</button>
+                    </form>
+                    <div class="messages" id="messages-container">
+                        {% for message in messages %}
+                            <div class="message {% if message.sender == request.user %}sent{% else %}received{% endif %} {% if not message.is_read %}unread-message{% endif %}" data-message-id="{{ message.id }}">
+                            <p style="text-align: right;">{{ message.sender.first_name }}:</p><br/>
+                            <strong style="padding: 5px 0px;"><pre style="font-size: 1.3em; width: 60em; white-space: pre-wrap;">{{ message.message }}</pre></strong><br/>
+                            <p style="text-align: right;"><small>{{ message.timestamp }}</small></p>
+                            </div>
+                        {% endfor %}
+                    </div>
+
+                    <form method="post" class="form-control">
+                        {% csrf_token %}
+                        {{ form.as_p }}
+                        <button type="submit">Отправить</button>
+                    </form>
+                </div>
+                {% endblock %}
+            </section>
+        </div>
+    </main>
+    <footer style="background-color: lightwhite; font-size: 0.6em; padding-left: 2em;">
+    	<p>По вопросам в IT отдел</p>
+    </footer>
+<script>
+var requestUser = "{{ request_user }}"; // Получаем имя пользователя
+// ...
+
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            let cookie = cookies[i].trim();
+            // Does this cookie string begin with the name we want?
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+
+function loadNewMessages() {
+  try {
+    let lastMessageId; // Объявляем lastMessageId с помощью let
+    if ($('.message').length > 0) { // Проверяем, есть ли сообщения на странице
+      lastMessageId = $('.message').last().data('message-id');
+    }
+
+    // Если сообщений нет, ничего не делаем
+    if (lastMessageId === undefined) {
+      return;
+    }
+
+    var messagesContainer = $('#messages-container'); // Определяем messagesContainer здесь
+    var isScrolledToBottom = isUserScrolledToBottom(messagesContainer); // Получаем значение здесь
+    const startDate = $('#start_date').val(); // Get start date value from input field
+    const endDate = $('#end_date').val();
+
+    let url = `{% url "get_new_messages" recipient.username %}?last_message_id=${lastMessageId || ''}`;
+    if (startDate) {
+      url += `&start_date=${startDate}`;
+    }
+    if (endDate) {
+      url += `&end_date=${endDate}`;
+    }
+
+    $.ajax({
+      url: url,
+      type: 'GET',
+      dataType: 'json',
+      success: function(data) {
+        $.each(data.messages, function(index, message) {
+          var existingMessage = $(`[data-message-id="${message.id}"]`);
+          if (existingMessage.length === 0) {
+            var unreadClass = message.is_read ? '' : 'unread-message'; // Определяем класс для непрочитанных сообщений
+            var messageHtml = `
+              <div class="message {% if message.sender == request.user %}sent{% else %}received{% endif %} ${unreadClass}" data-message-id="${message.id}">
+                <p style="text-align: right;">${ message.sender.first_name }:</p><br/>
+                <strong style="padding: 5px 0px;"><pre style="font-size: 1.3em; width: 60em; white-space: pre-wrap;">${ message.message }</pre></strong><br/>
+                <p style="text-align: right;"><small>${ message.timestamp }</small></p>
+              </div>
+            `;
+            $('#messages-container').append(messageHtml);
+          }
+        });
+
+        if (isScrolledToBottom) {
+          scrollToBottom($('#messages-container'));
+        }
+      },
+      error: function(jqXHR, textStatus, errorThrown) {
+        console.error("Ошибка AJAX в loadNewMessages:", textStatus, errorThrown, jqXHR);
+      }
+    });
+  } catch (error) {
+    console.error("Ошибка в loadNewMessages:", error);
+  }
+}
+
+function scrollToBottom(messagesContainer) {
+  messagesContainer.scrollTop(messagesContainer[0].scrollHeight);
+}
+
+// Функция для проверки, находится ли пользователь внизу контейнера
+function isUserScrolledToBottom(messagesContainer) {
+    // Добавляем небольшой "запас" (tolerance)
+    const tolerance = 10;
+    return messagesContainer.scrollTop() + messagesContainer.innerHeight() >= messagesContainer[0].scrollHeight - tolerance;
+}
+
+// Создаём IntersectionObserver вне loadNewMessages
+const observer = new IntersectionObserver(entries => {
+    entries.forEach(entry => {
+        if (entry.isIntersecting && entry.target.classList.contains('received')) {
+            const messageId = entry.target.dataset.messageId;
+            entry.target.dataset.isObserved = 'true'; // Помечаем сообщение как наблюдаемое
+            setTimeout(() => {
+                if (entry.target.dataset.isObserved === 'true') { // Проверяем, что сообщение все еще наблюдается
+                    markAsRead(messageId);
+                    observer.unobserve(entry.target); // Прекращаем наблюдение за этим сообщением
+                }
+            }, 1000); // 1000 миллисекунд = 1 секунда
+        } else {
+            // Если сообщение перестало быть видимым, отменяем отметку о прочтении
+            entry.target.dataset.isObserved = 'false';
+        }
+    });
+});
+
+function markAsRead(messageId) {
+    console.log("markAsRead called for messageId:", messageId);
+
+    const csrftoken = getCookie('csrftoken'); // Получаем CSRF-токен из cookie
+
+    $.ajax({
+        url: `{% url 'mark_as_read' message_id=0 %}`.replace('0', messageId),
+        type: 'POST',
+        contentType: 'application/json',
+        beforeSend: function(xhr) { // Добавляем CSRF-токен в заголовок
+            xhr.setRequestHeader("X-CSRFToken", csrftoken);
+        },
+        success: function(data) {
+            console.log("markAsRead success for messageId:", messageId);
+            $(`.message[data-message-id="${messageId}"]`).removeClass('unread-message');
+        },
+        error: function(xhr, status, error) {
+            console.error("Error marking message as read:", error);
+        }
+    });
+}
+
+// Добавляем все существующие сообщения в IntersectionObserver при загрузке страницы и прокручиваем вниз
+$(window).on('load', function() {
+    scrollToBottom($('#messages-container')); // Вызываем функцию при загрузке страницы
+    const initialMessages = document.querySelectorAll('.message');
+    initialMessages.forEach(message => {
+        observer.observe(message);
+        message.dataset.observed = 'true'; // Помечаем сообщение, чтобы не добавлять его повторно
+    });
+});
+
+function flashTitle(newTitle, originalTitle) {
+    let isOriginal = true;
+    let intervalId = setInterval(function() {
+        document.title = isOriginal ? newTitle : originalTitle;
+        isOriginal = !isOriginal;
+    }, 1000); // Меняем заголовок каждую секунду
+
+    return intervalId; // Возвращаем ID интервала, чтобы можно было остановить моргание
+}
+
+function stopFlashTitle(intervalId, originalTitle) {
+    clearInterval(intervalId);
+    document.title = originalTitle; // Возвращаем исходный заголовок
+}
+
+
+function changeFavicon(newFavicon) {
+    let link = document.querySelector("link[rel*='icon']") || document.createElement('link');
+    link.type = 'image/x-icon';
+    link.rel = 'shortcut icon';
+    link.href = newFavicon;
+    document.getElementsByTagName('head')[0].appendChild(link);
+}
+
+let isLongPolling = false;
+
+function updateUnreadCountLongPolling(recipientUsername, lastCount) {
+    console.log("updateUnreadCountLongPolling called for:", recipientUsername); // Добавили лог
+
+    $.ajax({
+        url: '/get_unread_count_long_polling/',
+        type: 'GET',
+        data: {
+            recipient_username: recipientUsername,
+            last_count: lastCount
+        },
+        dataType: 'json',
+        success: function(data) {
+            console.log("Data from Long Polling:", data);
+            const unreadCount = data.unread_count;
+            console.log("Unread count:", unreadCount);
+            const indicator = $(`#unread-count-${recipientUsername}`);
+
+            if (indicator.length > 0) { // Проверяем, что элемент существует
+                if (unreadCount > 0) {
+                    indicator.text(unreadCount);
+                    indicator.show();
+                    window.api.updateUnreadCount(unreadCount);
+                } else {
+                    indicator.text('');
+                    indicator.hide();
+                    window.api.updateUnreadCount(0);
+                }
+            } else {
+                console.warn(`Indicator with id "unread-count-${recipientUsername}" not found.`);
+            }
+
+            updateUnreadCountLongPolling(recipientUsername, unreadCount);
+        },
+        error: function(xhr, status, error) {
+            console.error("Error getting unread count:", error);
+            setTimeout(function() {
+                updateUnreadCountLongPolling(recipientUsername, lastCount);
+            }, 5000);
+        }
+    });
+}
+
+$(document).ready(function() {
+    console.log("document ready");  // Add this line
+    $('.user-list a').each(function() {
+        const recipientUsername = $(this).attr('href').split('/').filter(Boolean).pop(); // Получаем имя пользователя из URL
+
+        // Явно удаляем содержимое индикатора при первоначальной загрузке
+        $(`#unread-count-${recipientUsername}`).hide();  // Убираем hide
+
+        updateUnreadCountLongPolling(recipientUsername, 0); // Начинаем с 0 непрочитанных сообщений
+    });
+});
+
+
+setInterval(loadNewMessages, 5000);
+
+
+
+</script>
+</body>
+</html>

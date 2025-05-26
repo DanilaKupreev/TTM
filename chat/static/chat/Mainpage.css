@@ -1,0 +1,136 @@
+﻿* {
+	border: 0;
+	margin: 0;
+	padding: 0;
+}
+
+:active, :hover, :focus {
+    outline: 0;
+    outline-offset: 0;
+}
+
+header {
+	box-shadow: 0px 5px 15px lightgrey;
+	position: static;
+	height: 10em;
+    display: flex;
+    vertical-align: middle;
+}
+
+.search {
+    height: 1em;
+    max-height: 3em;
+    margin-top: 3em;
+    padding: 1em;
+    width: 20em;
+    border-radius: 5em;
+    border: 2px solid grey;
+}
+
+header img {
+	max-height: 100%;
+}
+
+ul {
+	list-style-type: none;
+}
+
+a {
+	color: black;
+}
+
+body {
+    max-height: 90em;
+}
+
+.display {
+    display: inline-flex;
+    width: 100%;
+}
+
+#leftpanel {
+    box-shadow: 0px 2px 7px lightgrey;
+    width: 20%;
+    max-height: 50em;
+    overflow-y: auto;
+    padding: 1em 1em;
+}
+
+#rightpanel {
+    padding: 1em 1em;
+    max-width: 80%;
+    min-width: 80%;
+    min-height: 47em;
+    max-height: 47em;
+}
+
+#chat-log {
+    padding-left: 10px;
+    /* display: flex; flex-direction: column;  Убираем это */
+    height: 80%; /* Занимает всю доступную высоту */
+    max-height: 50em; 
+    overflow: auto;
+}
+
+label {
+    display: none;
+}
+
+button {
+    width: 10%;
+    height: 5em;
+    width: 10em;
+    border-radius: 1em;
+    margin-left: 2px;
+    position: fixed;
+}
+
+#chat-log::-webkit-scrollbar {
+  width: 0; /* Для Chrome, Safari и Opera */
+  transition: width 5s ease;
+}
+
+#chat-log {
+  -ms-overflow-style: none; /* Для Internet Explorer и Edge */
+  scrollbar-width: none; /* Для Firefox */
+  transition: scrollbar-width 5s ease;
+}
+
+/* Показываем скроллбар при наведении */
+#chat-log:hover::-webkit-scrollbar {
+  width: 8px; /* Или любой другой размер */
+}
+
+#chat-log:hover {
+  scrollbar-width: thin; /* Для Firefox */
+}
+
+.unread-message {
+    background-color: #f0f0f0; /* Светло-серый фон */
+    font-weight: bold;
+}
+
+.unread-indicator {
+    background-color: red;
+    color: white;
+    border-radius: 50%;
+    padding: 2px 5px;
+    font-size: 0.8em;
+    margin-left: 5px;
+}
+
+#rightshow label {
+    display: show;
+}
+
+#chat-message-input {
+    width: 40em;
+    max-width: 80em;
+    height: 3em;
+    max-height: 5em;
+    border: 1px solid grey;
+    border-radius: 1em;
+    padding: 1em;
+    font-size: 1.1em;
+    font-weight: 400;
+}

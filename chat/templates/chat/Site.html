@@ -1,0 +1,47 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8">
+	{% load static %}
+	<link rel="stylesheet" href="{% static 'chat/Site.css' %}">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<title></title>
+</head>
+<body>
+	<header>
+		<div class="shapka">
+			<a href = "{% url 'MainPage' %}"><h1>ТверьТоргМаш</h1></a>
+			<a href = "{% url 'Info1C' %}">Инструкции</a>
+			<a href = "{% url 'Contact2' %}">Контакты</a>
+			<a>Руководящие документы</a>
+			<a>Бланки документов</a>
+		</div>
+
+	</header>
+
+	<main>
+		<div class="slperekhodnik">
+
+			<aside class="gablok_sedakoda">
+				<div class="slayder_karusel">
+				<figure><img src="{% static 'chat/slide1.jpg' %}" alt=""><figcaption></figcaption></figure>
+				<figure><img src="{% static 'chat/slide2.jpg' %}" alt=""><figcaption></figcaption></figure>
+				<figure><img src="{% static 'chat/slide3.jpg' %}" alt=""><figcaption></figcaption></figure>
+				<figure><img src="{% static 'chat/slide4.jpg' %}" alt=""><figcaption></figcaption></figure>
+				<figure><img src="{% static 'chat/slide5.jpg' %}" alt=""><figcaption></figcaption></figure>
+				</div>
+			</aside>
+		   
+		</div>
+
+		<div class="header-block">
+			<h1>Наша Компания</h1>
+			<p>Подробности</p>
+		</div>
+	</main>
+
+	<footer>
+		<p>Что-то еще</p>
+	</footer>
+</body>
+</html>

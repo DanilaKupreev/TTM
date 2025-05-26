@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html>
+<head>
+	{% load static %}
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<link rel="stylesheet" href="{% static 'chat/MainPage.css' %}">
+	<link rel="shortcut icon" href="{% static 'images/chat_icon.png' %}">
+	<title></title>
+</head>
+<body>
+	<header>
+		<img src="{% static 'chat/logo.png' %}">
+	</header>
+	<main>
+		<div class="display">
+			<section id="leftpanel">
+                <h2>Пользователи</h2>
+                <ul class="user-list">
+                    {% for user in users %}
+                        <li>
+                            <a href="{% url 'chat_view' %}?recipient={{ user.username }}">
+                                {{ user.first_name }}
+                                <span class="unread-indicator" id="unread-count-{{ user.username }}">
+                                </span>
+                            </a>
+                        </li>
+                    {% endfor %}
+                </ul>
+            </section>
+			<section id="rightpanel">
+
+			</section>
+		</div>
+	</main>
+	<footer>
+		
+	</footer>
+	<script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const username1 = "{{ user.username }}"; // User.username - текущий пользователь
+			const urlParams = new URLSearchParams(window.location.search);
+			const username2 = urlParams.get('recipient'); // Получение recipient из query string
+			console.log("Username1:", username1);
+			console.log("Username2:", username2);
+			const roomName = generateRoomName(username1, username2);
+			console.log("WebSocket Room Name:", roomName);
+            
+
+            const chatSocket = new WebSocket(
+                'ws://' + window.location.host + '/ws/chat/' + roomName + '/'
+            );
+
+            function generateRoomName(user1, user2) {
+                const usernames = [user1, user2].sort();
+                return usernames[0] + '_' + usernames[1];
+            }
+
+
+            function addMessageToChatLog(sender, message, timestamp, isHistory = false) {
+                const chatLog = document.querySelector('#chat-log');
+                if (!chatLog) {
+                    console.error("Chat log element not found!");
+                    return;
+                }
+
+                const messageHTML = `
+                    <div class="message ${isHistory ? 'history-message' : ''}">
+                        <b>${escapeHTML(sender)}:</b> ${escapeHTML(message)} <span class="timestamp">(${escapeHTML(timestamp)})</span>
+                    </div>
+                `;
+
+                chatLog.innerHTML += messageHTML;
+                chatLog.scrollTop = chatLog.scrollHeight; // Scroll to bottom
+            }
+
+            function escapeHTML(string) {
+                let pre = document.createElement('pre');
+                let text = document.createTextNode(string);
+                pre.appendChild(text);
+                return pre.innerHTML;
+            }
+
+            chatSocket.onmessage = function(e) {
+                console.log("RECEIVED ON CLIENT: e.data=" + e.data);
+                try {
+                    const data = JSON.parse(e.data);
+                    const type = data.type;
+
+                    if (type === 'message_history') {
+                        const messages = data.messages;
+                        messages.forEach(message => {
+                            const sender = message.sender;
+                            const messageText = message.message;
+                            const timestamp = message.timestamp;
+                            addMessageToChatLog(sender, messageText, timestamp, true); // Mark as history
+                        });
+                    }
+                    else if (type === 'new_message') {
+                        const messageText = data.message;
+                        const sender = data.sender;
+                        const timestamp = data.timestamp;
+                        console.log("NEW_MESSAGE: sender=" + sender + ", message=" + messageText + ", timestamp=" + timestamp);
+                        addMessageToChatLog(sender, messageText, timestamp);
+                    }
+                } catch (error) {
+                    console.error("Error processing message:", error);
+                }
+            };
+
+            chatSocket.onopen = function(e) {
+                console.log("WebSocket connection opened");
+            };
+
+            chatSocket.onclose = function(e) {
+                console.error('Chat socket closed unexpectedly');
+            };
+
+            const messageInput = document.querySelector('#chat-message-input');
+            const sendButton = document.querySelector('#chat-message-submit');
+
+            messageInput.focus();
+            messageInput.onkeyup = function(e) {
+                if (e.keyCode === 13) {  // Enter key
+                    sendButton.click();
+                }
+            };
+
+            sendButton.onclick = function(e) {
+                const message = messageInput.value;
+                if (message.trim() !== "") {
+                    chatSocket.send(JSON.stringify({
+                        'message': message,
+                        'sender': username1 // Or currentUsername, depending on your logic
+                    }));
+                    messageInput.value = '';
+                }
+            };
+
+            document.querySelector('#chat-message-submit').onclick = function(e) {
+                const messageInputDom = document.querySelector('#chat-message-input');
+                const message = messageInputDom.value;
+                chatSocket.send(JSON.stringify({
+                    'message': message
+                }));
+                messageInputDom.value = '';
+            };
+        });
+
+        
+    </script>
+</body>
+</html>
