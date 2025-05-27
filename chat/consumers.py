@@ -236,7 +236,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
             {
                 'message': message.content,
                 'sender': message.sender.username,
-                'timestamp': message.timestamp.isoformat() if message.timestamp else None,
+                'timestamp': message.timestamp.strftime('%H:%M %d.%m.%Y') if message.timestamp else None,
                 'is_read': message.is_read,
             }
             for message in messages
@@ -245,25 +245,13 @@ class ChatConsumer(AsyncWebsocketConsumer):
         return message_list
 
 
-    @sync_to_async
-    def mark_messages_as_read(self, recipient_username):
-        print(f"mark_messages_as_read called for recipient: {recipient_username}")  # Add this line
-        user1, user2 = self.room_name.split("_")
-        try:
-            sender = User.objects.get(username=self.scope['user'].username)
-            if self.scope['user'].username == user1:
-                recipient_username = user2
-            else:
-                recipient_username = user1
-            recipient = User.objects.get(username=recipient_username)
-        except User.DoesNotExist:
-            print(f"User not found")
-            return
-
-        messages_to_mark = Message.objects.filter(sender=recipient, recipient=sender, is_read=False)
-        print(f"Found {messages_to_mark.count()} messages to mark as read")  # Add this line
-        messages_to_mark.update(is_read=True)
-        print("Messages marked as read")  # Add this line
+    async def messages_read(self, event):
+        count = event['count']
+        print(f"messages_read event called, updated {count} messages")
+        await self.send(text_data=json.dumps({
+            'type': 'messages_read',
+            'count': count,
+        }))
 
     @sync_to_async
     def get_user(self, username):

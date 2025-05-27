@@ -65,8 +65,8 @@
     
 
     <script>
-        const username1 = "{{ user.username }}"; // Current user
-        const username2 = "{{ recipient.username }}"; // Recipient user
+        const username1 = "{{ user.username }}";
+        const username2 = "{{ recipient.username }}";
 
         let chatSocket = null; // Declare and initialize chatSocket
 
@@ -99,20 +99,21 @@
                             addMessageToChatLog(message, true);
                         });
                     } else if (type === 'new_message') {
+                        console.log("Received new message");
                         addMessageToChatLog(data);
                         console.log("Recipient before sending mark_as_read:", data.sender);
                         chatSocket.send(JSON.stringify({
                             'type': 'mark_as_read',
-                            'recipient': username1 // Use username1 (current user)
-                        })); 
-                    } else if (type === 'messages_read') { // Handle messages_read event
+                            'recipient': username1
+                        }));
+                    } else if (type === 'messages_read') {
                         console.log("Received messages_read event");
                         // Find all unread messages and remove the 'unread' class
                         const unreadMessages = document.querySelectorAll('.message.unread');
                         unreadMessages.forEach(message => {
                             message.classList.remove('unread');
-                        });}
-                    else if (type === 'online_users') {
+                        });
+                    } else if (type === 'online_users') {
                         updateOnlineUsers(data.users);
                     } else if (type === 'notification') {
                         showNotification(data.message);
@@ -210,8 +211,8 @@
             let unreadClass = (!data.is_read && data.sender !== username1) ? 'unread' : '';
 
             const messageHTML = `
-                <div style="padding: 1em;" class="message ${isHistory ? 'history-message' : ''} ${unreadClass}">
-                    <b style="text-align: right; display: block;">${escapeHTML(displayName)}:</b></br>
+                <div style = "padding-top: 1em;" class="message ${isHistory ? 'history-message' : ''} ${unreadClass}">
+                    <b style="text-align: right; display: block; ">${escapeHTML(displayName)}:</b></br>
                     <pre style='white-space: pre-wrap; font-size: 1.2em;'>${escapeHTML(data.message)}</pre></br>
                     <span class="timestamp" style="text-align: right;display: block;">(${escapeHTML(data.timestamp)})</span>
                 </div>
@@ -219,21 +220,6 @@
 
             chatLog.innerHTML += messageHTML;
             chatLog.scrollTop = chatLog.scrollHeight;
-        }
-
-        function updateOnlineUsers(users) {
-            // Get the element where you want to display the online users
-            const onlineUsersList = document.getElementById('online-users');
-
-            // Clear the current list
-            onlineUsersList.innerHTML = '';
-
-            // Loop through the users and create list items
-            users.forEach(user => {
-                const listItem = document.createElement('li');
-                listItem.textContent = user; // Or any other user info you want to display
-                onlineUsersList.appendChild(listItem);
-            });
         }
     </script>
 </body>
