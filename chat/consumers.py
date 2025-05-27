@@ -184,21 +184,16 @@ class ChatConsumer(AsyncWebsocketConsumer):
     def get_message_history(self, start_date_str=None, end_date_str=None):
         print("get_message_history called")
         user1, user2 = self.room_name.split("_")
-        print(f"Room name: {self.room_name}, User1: {user1}, User2: {user2}") #Add this line
+        print(f"Room name: {self.room_name}, User1: {user1}, User2: {user2}")
         try:
             sender = User.objects.get(username=self.scope['user'].username)
-            print(f"Sender username: {sender.username}") #Add this line
             if self.scope['user'].username == user1:
                 recipient_username = user2
             else:
                 recipient_username = user1
-            print(f"Recipient username: {recipient_username}") #Add this line
             recipient = User.objects.get(username=recipient_username)
         except User.DoesNotExist:
             print(f"User not found")
-            return []
-        except Exception as e:
-            print(f"Error getting users: {e}")
             return []
 
         messages_base = Message.objects.filter(
@@ -231,7 +226,8 @@ class ChatConsumer(AsyncWebsocketConsumer):
             {
                 'message': message.content,
                 'sender': message.sender.username,
-                'timestamp': message.timestamp.isoformat() if message.timestamp else None
+                'timestamp': message.timestamp.strftime('%H:%M %d.%m.%Y') if message.timestamp else None,
+                'is_read': message.is_read, # THIS LINE
             }
             for message in messages
         ]

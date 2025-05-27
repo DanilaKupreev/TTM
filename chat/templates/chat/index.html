@@ -31,10 +31,10 @@
                         </li>
                     {% endfor %}
                 </ul>
+                <h2>Онлайн:</h2>
                 <section id="online-users">
-                    <h2>Онлайн:</h2>
                     <ul id="online-users-list">
-                        </ul>
+                    </ul>
                 </section>
             </section>
             <section id="rightpanel">
@@ -61,58 +61,29 @@
     	<p>По вопросам в IT отдел</p>
     </footer>
 
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.9.0/js/bootstrap-datepicker.min.js" integrity="sha512-T/tUfKSV1bihCnd+MxKD0Hm1uBBroVYBOYSk1iKG6gothVt6NHJBmW1mRw6UpP4kTNLhdp担当者はこちらに記入してください/W0JtlQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+
     <script>
-        const username1 = "{{ user.username }}"; // Текущий пользователь
-        const username2 = "{{ recipient.username }}"; // Получатель
+        const username1 = "{{ user.username }}"; // Current user
+        const username2 = "{{ recipient.username }}"; // Recipient user
+
+        let chatSocket = null; // Declare and initialize chatSocket
 
         document.addEventListener('DOMContentLoaded', function() {
-            const date = new Date();
-            const timestamp = date.toLocaleTimeString() + ' ' + date.toLocaleDateString();
-
-            function generateRoomName(user1, user2) {
-                const usernames = [user1, user2].sort();
-                return usernames[0] + '_' + usernames[1];
-            }
-
             const roomName = generateRoomName(username1, username2);
-            console.log("WebSocket Room Name:", roomName);
 
-            let chatSocket = new WebSocket(
+            chatSocket = new WebSocket(
                 'ws://' + window.location.host + '/ws/chat/' + roomName + '/'
             );
 
-            function addMessageToChatLog(data, isHistory = false) {
-                const chatLog = document.querySelector('#chat-log');
-                if (!chatLog) {
-                    console.error("Chat log element not found!");
-                    return;
-                }
+            chatSocket.onopen = function(e) {
+                console.log("WebSocket connection opened");
+            };
 
-                let displayName;
-                if (data.sender === username1) {
-                    displayName = "Я";
-                } else {
-                    displayName = data.sender_first_name || data.sender;
-                }
-
-                const messageHTML = `
-                    <div class="message ${isHistory ? 'history-message' : ''}">
-                        <b style="text-align: right; display: block; padding-top: 1em;">${escapeHTML(displayName)}:</b></br>
-                        <pre style='white-space: pre-wrap; font-size: 1.2em;'>${escapeHTML(data.message)}</pre></br>
-                        <span class="timestamp" style="text-align: right;display: block;">(${escapeHTML(data.timestamp)})</span>
-                    </div>
-                `;
-
-                chatLog.innerHTML += messageHTML;
-                chatLog.scrollTop = chatLog.scrollHeight;
-            }
-
-            function escapeHTML(string) {
-                let pre = document.createElement('pre');
-                let text = document.createTextNode(string);
-                pre.appendChild(text);
-                return pre.innerHTML;
-            }
+            chatSocket.onclose = function(e) {
+                console.log("WebSocket connection closed");
+            };
 
             chatSocket.onmessage = function(e) {
                 console.log("RECEIVED ON CLIENT: e.data=" + e.data);
@@ -130,10 +101,11 @@
                     } else if (type === 'new_message') {
                         console.log("Received new message");
                         addMessageToChatLog(data);
+                        console.log("Recipient before sending mark_as_read:", data.sender);
                         chatSocket.send(JSON.stringify({
-                        'type': 'message',
-                        'recipient': data.sender
-                    }));
+                            'type': 'mark_as_read',
+                            'recipient': data.sender
+                        }));
                     } else if (type === 'online_users') {
                         updateOnlineUsers(data.users);
                     } else if (type === 'notification') {
@@ -142,129 +114,121 @@
                 } catch (error) {
                     console.error("Error processing message:", error);
                 }
-            };
-
-            chatSocket.onopen = function(e) {
-                console.log("WebSocket connection opened");
             };
 
             chatSocket.onclose = function(e) {
                 console.error('Chat socket closed unexpectedly');
             };
 
-            const messageInput = document.querySelector('#chat-message-input');
-            const sendButton = document.querySelector('#chat-message-submit');
-
-            messageInput.focus();
-            messageInput.onkeyup = function(e) {
-                if (e.keyCode === 13) {
-                    sendButton.click();
-                }
+            document.querySelector('#chat-message-submit').onclick = function(e) {
+                const messageInputDom = document.querySelector('#chat-message-input');
+                const message = messageInputDom.value;
+                chatSocket.send(JSON.stringify({
+                    'type': 'message', // Add type here
+                    'message': message
+                }));
+                messageInputDom.value = '';
             };
 
-            sendButton.onclick = function(e) {
-                const message = messageInput.value;
-                if (message.trim() !== "") {
-                    chatSocket.send(JSON.stringify({
-                        'message': message
-                    }));
-                    messageInput.value = '';
+            const dateFilterForm = document.getElementById('date-filter-form');
+            dateFilterForm.addEventListener('submit', function(event) {
+                event.preventDefault();
+                const startDate = document.getElementById('start-date').value;
+                const endDate = document.getElementById('end-date').value;
+
+                console.log("Start date:", startDate, "End date:", endDate);
+
+                if (chatSocket) {
+                    chatSocket.close();
                 }
-            };
+                chatSocket = new WebSocket(
+                    'ws://' + window.location.host + '/ws/chat/' + roomName + '/?start_date=' + startDate + '&end_date=' + endDate
+                );
 
-            function updateOnlineUsers(users) {
-                const onlineUsersList = document.getElementById('online-users-list');
-                onlineUsersList.innerHTML = '';
-                users.forEach(user => {
-                    const li = document.createElement('li');
-                    li.textContent = user;
-                    onlineUsersList.appendChild(li);
-                });
-            }
-
-            function showNotification(data) {
-                if (("Notification" in window)) {
-                    Notification.requestPermission().then(function(permission) {
-                        if (permission === "granted") {
-                            var notification = new Notification("Новое сообщение!", {
-                                body: message,
-                                icon: '/static/images/icon.png' // Replace with your icon
-                            });
-
-                            notification.onclick = function() {
-                                window.focus(); // Focus the window if clicked
-                                notification.close();
-                            };
-                        }
-                    });
-                }
-            }
-
-            function flashTitle(message) {
-                let originalTitle = document.title;
-                let timeoutId;
-
-                function alternateTitle() {
-                    document.title = (document.title === message) ? originalTitle : message;
-                    timeoutId = setTimeout(alternateTitle, 1000); // Change title every second
-                }
-
-                alternateTitle();
-
-                return function stopFlashing() {
-                    clearTimeout(timeoutId);
-                    document.title = originalTitle;
+                chatSocket.onopen = function(e) {
+                    console.log("WebSocket connection opened with date filter");
                 };
-            }
 
-            // Example usage:
-            let stopFlashing = flashTitle("New Message!");
+                chatSocket.onmessage = function(e) {
+                    console.log("RECEIVED ON CLIENT (Date Filter): e.data=" + e.data);
+                    try {
+                        const data = JSON.parse(e.data);
+                        const type = data.type;
 
-            // Call stopFlashing() when the user focuses on the window/tab
-            window.addEventListener('focus', function() {
-                stopFlashing();
+                        if (type === 'message_history') {
+                            console.log("Received message history (Date Filter)");
+                            const messages = data.messages;
+                            console.log("Number of messages:", messages.length);
+                            messages.forEach(message => {
+                                addMessageToChatLog(message, true);
+                            });
+                        }
+                    } catch (error) {
+                        console.error("Error processing message (Date Filter):", error);
+                    }
+                };
+
+                chatSocket.onclose = function(e) {
+                    console.log("WebSocket connection closed (Date Filter)");
+                };
             });
         });
 
-        document.getElementById('date-filter-form').addEventListener('submit', function(event) {
-            event.preventDefault();
-            const startDate = document.getElementById('start-date').value;
-            const endDate = document.getElementById('end-date').value;
+        function generateRoomName(user1, user2) {
+            const usernames = [user1, user2].sort();
+            return usernames[0] + '_' + usernames[1];
+        }
 
-            chatSocket.close();
-            chatSocket = new WebSocket(
-                'ws://' + window.location.host + '/ws/chat/' + roomName + '/?start_date=' + startDate + '&end_date=' + endDate
-            );
+        function escapeHTML(string) {
+            let pre = document.createElement('pre');
+            let text = document.createTextNode(string);
+            pre.appendChild(text);
+            return pre.innerHTML;
+        }
 
-            chatSocket.onmessage = function(e) {
-                console.log("RECEIVED ON CLIENT: e.data=" + e.data);
-                try {
-                    const data = JSON.parse(e.data);
-                    const type = data.type;
+        function addMessageToChatLog(data, isHistory = false) {
+            const chatLog = document.querySelector('#chat-log');
+            if (!chatLog) {
+                console.error("Chat log element not found!");
+                return;
+            }
 
-                    if (type === 'message_history') {
-                        const messages = data.messages;
-                        const chatLog = document.querySelector('#chat-log');
-                        chatLog.innerHTML = '';
-                        messages.forEach(message => {
-                            addMessageToChatLog(message, true);
-                        });
-                    } else if (type === 'new_message') {
-                        addMessageToChatLog(data);
-                        chatSocket.send(JSON.stringify({
-                        'type': 'mark_as_read',
-                        'recipient': data.sender
-                    }));
-                    } else if (type === 'online_users') {
-                        updateOnlineUsers(data.users);
-                    } else if (type === 'notification') {
-                        showNotification(data.message);
-                    }
-                } catch (error) {
-                    console.error("Error processing message:", error);
-                }
-            };
-        });
+            let displayName;
+            if (data.sender === username1) {
+                displayName = "Я";
+            } else {
+                displayName = data.sender_first_name || data.sender;
+            }
+
+            // Add 'unread' class if the message is unread and not sent by the current user
+            let unreadClass = (!data.is_read && data.sender !== username1) ? 'unread' : '';
+
+            const messageHTML = `
+                <div style="padding: 1em;" class="message ${isHistory ? 'history-message' : ''} ${unreadClass}">
+                    <b style="text-align: right; display: block;">${escapeHTML(displayName)}:</b></br>
+                    <pre style='white-space: pre-wrap; font-size: 1.2em;'>${escapeHTML(data.message)}</pre></br>
+                    <span class="timestamp" style="text-align: right;display: block;">(${escapeHTML(data.timestamp)})</span>
+                </div>
+            `;
+
+            chatLog.innerHTML += messageHTML;
+            chatLog.scrollTop = chatLog.scrollHeight;
+        }
+
+        function updateOnlineUsers(users) {
+            // Get the element where you want to display the online users
+            const onlineUsersList = document.getElementById('online-users');
+
+            // Clear the current list
+            onlineUsersList.innerHTML = '';
+
+            // Loop through the users and create list items
+            users.forEach(user => {
+                const listItem = document.createElement('li');
+                listItem.textContent = user; // Or any other user info you want to display
+                onlineUsersList.appendChild(listItem);
+            });
+        }
     </script>
 </body>
 </html>

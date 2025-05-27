@@ -105,9 +105,9 @@ button {
   scrollbar-width: thin; /* Для Firefox */
 }
 
-.unread-message {
-    background-color: #f0f0f0; /* Светло-серый фон */
-    font-weight: bold;
+.message.unread {
+    background-color: #f0f0f0; /* Light gray background */
+    font-weight: bold; /* Make the text bold */
 }
 
 .unread-indicator {
