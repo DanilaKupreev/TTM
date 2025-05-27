@@ -82,7 +82,7 @@ button {
     width: 10em;
     border-radius: 1em;
     margin-left: 2px;
-    position: sticky;
+    position: fixed;
 }
 
 #chat-log::-webkit-scrollbar {
@@ -117,6 +117,7 @@ button {
     padding: 2px 5px;
     font-size: 0.8em;
     margin-left: 5px;
+    text-decoration: none;
 }
 
 #rightshow label {

@@ -24,17 +24,28 @@
                                 {{ user.first_name }}
                                 {% if user.username in unread_counts %}
                                     <span class="unread-indicator" id="unread-count-{{ user.username }}">
-                                        ({{ unread_counts|get_item:user.username }})
+                                        {{ unread_counts|get_item:user.username }}
                                     </span>
                                 {% endif %}
                             </a>
                         </li>
                     {% endfor %}
                 </ul>
+                <section id="online-users">
+                    <h2>Онлайн:</h2>
+                    <ul id="online-users-list">
+                        </ul>
+                </section>
             </section>
             <section id="rightpanel">
                 {% block content %}
                     <h1>Чат с {{ recipient.first_name }}</h1>
+                    <div id="chat-log">
+                    </div>
+                    <div>
+                        <textarea type="text" id="chat-message-input" size="100"></textarea>
+                        <button id="chat-message-submit">Отправить</button>
+                    </div>
                     <form id="date-filter-form">
                         <label for="start-date">Начальная дата:</label>
                         <input type="date" id="start-date" name="start_date">
@@ -42,46 +53,33 @@
                         <input type="date" id="end-date" name="end_date">
                         <button type="submit">Фильтр</button>
                     </form>
-                    <div id="chat-log">
-                        
-                    </div>
-                    <div>
-                        <textarea type="text" id="chat-message-input" size="100"></textarea>
-                        <button id="chat-message-submit">Отправить</button>
-                    </div>
                 {% endblock %}
             </section>
         </div>
     </main>
     <footer style="background-color: lightwhite; font-size: 0.6em; padding-left: 2em;">
     	<p>По вопросам в IT отдел</p>
-        <section id="online-users">
-            <h2>Онлайн:</h2>
-            <ul id="online-users-list">
-                </ul>
-        </section>
     </footer>
 
     <script>
         const username1 = "{{ user.username }}"; // Текущий пользователь
         const username2 = "{{ recipient.username }}"; // Получатель
-    </script>
-    <script>
+
         document.addEventListener('DOMContentLoaded', function() {
             const date = new Date();
             const timestamp = date.toLocaleTimeString() + ' ' + date.toLocaleDateString();
-
-            const roomName = generateRoomName(username1, username2); // Функция для генерации roomName
-            console.log("WebSocket Room Name:", roomName);
-
-            let chatSocket = new WebSocket(
-                'ws://' + window.location.host + '/ws/chat/' + roomName + '/'
-            );
 
             function generateRoomName(user1, user2) {
                 const usernames = [user1, user2].sort();
                 return usernames[0] + '_' + usernames[1];
             }
+
+            const roomName = generateRoomName(username1, username2);
+            console.log("WebSocket Room Name:", roomName);
+
+            let chatSocket = new WebSocket(
+                'ws://' + window.location.host + '/ws/chat/' + roomName + '/'
+            );
 
             function addMessageToChatLog(data, isHistory = false) {
                 const chatLog = document.querySelector('#chat-log');
@@ -92,9 +90,9 @@
 
                 let displayName;
                 if (data.sender === username1) {
-                    displayName = "Я"; // Отображаем "Я", если сообщение от текущего пользователя
+                    displayName = "Я";
                 } else {
-                    displayName = data.sender_first_name || data.sender; // Отображаем first_name или sender
+                    displayName = data.sender_first_name || data.sender;
                 }
 
                 const messageHTML = `
@@ -123,14 +121,22 @@
                     const type = data.type;
 
                     if (type === 'message_history') {
-                        // ...
+                        console.log("Received message history");
+                        const messages = data.messages;
+                        console.log("Number of messages:", messages.length);
+                        messages.forEach(message => {
+                            addMessageToChatLog(message, true);
+                        });
                     } else if (type === 'new_message') {
-                        // ...
+                        console.log("Received new message");
+                        addMessageToChatLog(data);
+                        chatSocket.send(JSON.stringify({
+                        'type': 'message',
+                        'recipient': data.sender
+                    }));
                     } else if (type === 'online_users') {
                         updateOnlineUsers(data.users);
-                    }
-                    else if (type === 'notification') {
-                        // Handle notification
+                    } else if (type === 'notification') {
                         showNotification(data.message);
                     }
                 } catch (error) {
@@ -151,7 +157,7 @@
 
             messageInput.focus();
             messageInput.onkeyup = function(e) {
-                if (e.keyCode === 13) {  // Enter key
+                if (e.keyCode === 13) {
                     sendButton.click();
                 }
             };
@@ -168,7 +174,7 @@
 
             function updateOnlineUsers(users) {
                 const onlineUsersList = document.getElementById('online-users-list');
-                onlineUsersList.innerHTML = ''; // Clear the list
+                onlineUsersList.innerHTML = '';
                 users.forEach(user => {
                     const li = document.createElement('li');
                     li.textContent = user;
@@ -177,7 +183,48 @@
             }
 
             function showNotification(data) {
+                // Обработка уведомлений
             }
+        });
+
+        document.getElementById('date-filter-form').addEventListener('submit', function(event) {
+            event.preventDefault();
+            const startDate = document.getElementById('start-date').value;
+            const endDate = document.getElementById('end-date').value;
+
+            chatSocket.close();
+            chatSocket = new WebSocket(
+                'ws://' + window.location.host + '/ws/chat/' + roomName + '/?start_date=' + startDate + '&end_date=' + endDate
+            );
+
+            chatSocket.onmessage = function(e) {
+                console.log("RECEIVED ON CLIENT: e.data=" + e.data);
+                try {
+                    const data = JSON.parse(e.data);
+                    const type = data.type;
+
+                    if (type === 'message_history') {
+                        const messages = data.messages;
+                        const chatLog = document.querySelector('#chat-log');
+                        chatLog.innerHTML = '';
+                        messages.forEach(message => {
+                            addMessageToChatLog(message, true);
+                        });
+                    } else if (type === 'new_message') {
+                        addMessageToChatLog(data);
+                        chatSocket.send(JSON.stringify({
+                        'type': 'mark_as_read',
+                        'recipient': data.sender
+                    }));
+                    } else if (type === 'online_users') {
+                        updateOnlineUsers(data.users);
+                    } else if (type === 'notification') {
+                        showNotification(data.message);
+                    }
+                } catch (error) {
+                    console.error("Error processing message:", error);
+                }
+            };
         });
     </script>
 </body>

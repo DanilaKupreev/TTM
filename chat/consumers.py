@@ -1,5 +1,4 @@
 import json
-
 from channels.generic.websocket import AsyncWebsocketConsumer
 from asgiref.sync import sync_to_async
 from django.utils import timezone
@@ -22,6 +21,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
         self.notification_group_name = f"notification_{self.user.username}"  #  Имя группы уведомлений
 
         # Add to notification group
+        await self.accept()
         await self.channel_layer.group_add(
             self.notification_group_name,
             self.channel_name
@@ -37,6 +37,12 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
         # Send message history
         await self.send_online_users()
+        messages = await self.get_message_history()
+        await self.send(text_data=json.dumps({
+            'type': 'message_history',
+            'messages': messages
+        }, cls=DjangoJSONEncoder))
+        # Add this line
 
     async def disconnect(self, close_code):
         await self.channel_layer.group_discard(
@@ -98,8 +104,6 @@ class ChatConsumer(AsyncWebsocketConsumer):
         message = event['message']
         sender_username = event['sender']
         timestamp = event['timestamp']
-        localized_timestamp = timezone.localtime(timezone.datetime.fromisoformat(timestamp))
-        formatted_timestamp = localized_timestamp.strftime('%H:%M %d.%m.%Y')
         start_date = event.get('start_date')
         end_date = event.get('end_date')
 
@@ -107,6 +111,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
         user = await self.get_user(sender_username)
         sender_first_name = user.first_name
 
+        formatted_timestamp = timezone.datetime.fromisoformat(timestamp).strftime('%H:%M %d.%m.%Y')
 
         # Send the message to WebSocket
         await self.send(text_data=json.dumps({
@@ -177,17 +182,25 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
     @sync_to_async
     def get_message_history(self, start_date_str=None, end_date_str=None):
+        print("get_message_history called")
         user1, user2 = self.room_name.split("_")
-        sender = User.objects.get(username=self.scope['user'].username)
-        
-        if self.scope['user'].username == user1:
-            recipient_username = user2
-        else:
-            recipient_username = user1
-        recipient = User.objects.get(username=recipient_username)
-        
+        print(f"Room name: {self.room_name}, User1: {user1}, User2: {user2}") #Add this line
+        try:
+            sender = User.objects.get(username=self.scope['user'].username)
+            print(f"Sender username: {sender.username}") #Add this line
+            if self.scope['user'].username == user1:
+                recipient_username = user2
+            else:
+                recipient_username = user1
+            print(f"Recipient username: {recipient_username}") #Add this line
+            recipient = User.objects.get(username=recipient_username)
+        except User.DoesNotExist:
+            print(f"User not found")
+            return []
+        except Exception as e:
+            print(f"Error getting users: {e}")
+            return []
 
-        
         messages_base = Message.objects.filter(
         (Q(sender=sender, recipient=recipient) | Q(sender=recipient, recipient=sender))
         )
@@ -213,32 +226,38 @@ class ChatConsumer(AsyncWebsocketConsumer):
                 messages = messages.filter(timestamp__date__lte=end_date)
             except ValueError:
                 print("Некорректный формат даты окончания")
-        
-        return [
+
+        message_list = [
             {
                 'message': message.content,
                 'sender': message.sender.username,
-                'timestamp': message.timestamp.isoformat() if message.timestamp else None, # Убрали timezone.localtime
-                'start_date': message.start_date.isoformat() if message.start_date else None,
-                'end_date': message.end_date.isoformat() if message.end_date else None,
+                'timestamp': message.timestamp.isoformat() if message.timestamp else None
             }
             for message in messages
         ]
-    
+        print(f"get_message_history returning {len(message_list)} messages")
+        return message_list
+
 
     @sync_to_async
     def mark_messages_as_read(self, recipient_username):
+        print(f"mark_messages_as_read called for recipient: {recipient_username}")  # Add this line
         user1, user2 = self.room_name.split("_")
-        sender = User.objects.get(username=self.scope['user'].username)
+        try:
+            sender = User.objects.get(username=self.scope['user'].username)
+            if self.scope['user'].username == user1:
+                recipient_username = user2
+            else:
+                recipient_username = user1
+            recipient = User.objects.get(username=recipient_username)
+        except User.DoesNotExist:
+            print(f"User not found")
+            return
 
-        if self.scope['user'].username == user1:
-            recipient_username = user2
-        else:
-            recipient_username = user1
-        recipient = User.objects.get(username=recipient_username)
-
-
-        Message.objects.filter(sender=recipient, recipient=sender, is_read=False).update(is_read=True)
+        messages_to_mark = Message.objects.filter(sender=recipient, recipient=sender, is_read=False)
+        print(f"Found {messages_to_mark.count()} messages to mark as read")  # Add this line
+        messages_to_mark.update(is_read=True)
+        print("Messages marked as read")  # Add this line
 
     @sync_to_async
     def get_user(self, username):
