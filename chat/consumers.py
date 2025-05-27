@@ -197,7 +197,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
             return []
 
         messages_base = Message.objects.filter(
-        (Q(sender=sender, recipient=recipient) | Q(sender=recipient, recipient=sender))
+            (Q(sender=sender, recipient=recipient) | Q(sender=recipient, recipient=sender))
         )
 
         total_messages_count = messages_base.count()
@@ -207,7 +207,17 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
         messages = Message.objects.filter(
             (Q(sender=sender, recipient=recipient) | Q(sender=recipient, recipient=sender))
-        ).order_by('timestamp')[start_index:]
+        ).order_by('timestamp')
+
+        # Create a copy of the QuerySet before slicing
+        messages_to_update = messages.all()  # Use .all() to create a copy
+
+        # Apply the slice to the original QuerySet
+        messages = messages[start_index:]
+
+        # Mark messages as read here
+        messages_to_update.filter(recipient=sender, is_read=False).update(is_read=True)
+
         if start_date_str:
             try:
                 start_date = datetime.strptime(start_date_str, '%Y-%m-%d').date()
@@ -226,8 +236,8 @@ class ChatConsumer(AsyncWebsocketConsumer):
             {
                 'message': message.content,
                 'sender': message.sender.username,
-                'timestamp': message.timestamp.strftime('%H:%M %d.%m.%Y') if message.timestamp else None,
-                'is_read': message.is_read, # THIS LINE
+                'timestamp': message.timestamp.isoformat() if message.timestamp else None,
+                'is_read': message.is_read,
             }
             for message in messages
         ]

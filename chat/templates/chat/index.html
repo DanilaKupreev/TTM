@@ -62,7 +62,7 @@
     </footer>
 
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.9.0/js/bootstrap-datepicker.min.js" integrity="sha512-T/tUfKSV1bihCnd+MxKD0Hm1uBBroVYBOYSk1iKG6gothVt6NHJBmW1mRw6UpP4kTNLhdp担当者はこちらに記入してください/W0JtlQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    
 
     <script>
         const username1 = "{{ user.username }}"; // Current user
@@ -99,14 +99,20 @@
                             addMessageToChatLog(message, true);
                         });
                     } else if (type === 'new_message') {
-                        console.log("Received new message");
                         addMessageToChatLog(data);
                         console.log("Recipient before sending mark_as_read:", data.sender);
                         chatSocket.send(JSON.stringify({
                             'type': 'mark_as_read',
-                            'recipient': data.sender
-                        }));
-                    } else if (type === 'online_users') {
+                            'recipient': username1 // Use username1 (current user)
+                        })); 
+                    } else if (type === 'messages_read') { // Handle messages_read event
+                        console.log("Received messages_read event");
+                        // Find all unread messages and remove the 'unread' class
+                        const unreadMessages = document.querySelectorAll('.message.unread');
+                        unreadMessages.forEach(message => {
+                            message.classList.remove('unread');
+                        });}
+                    else if (type === 'online_users') {
                         updateOnlineUsers(data.users);
                     } else if (type === 'notification') {
                         showNotification(data.message);
