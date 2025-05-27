@@ -2,6 +2,7 @@
 <html>
 <head>
 	{% load static %}
+    {% load chat_tags %}
 	<meta charset="utf-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1">
 	<link rel="stylesheet" href="{% static 'chat/MainPage.css' %}">
@@ -21,8 +22,11 @@
                         <li>
                             <a href="{% url 'chat_view' %}?recipient={{ user.username }}">
                                 {{ user.first_name }}
-                                <span class="unread-indicator" id="unread-count-{{ user.username }}">
-                                </span>
+                                {% if user.username in unread_counts %}
+                                    <span class="unread-indicator" id="unread-count-{{ user.username }}">
+                                        ({{ unread_counts|get_item:user.username }})
+                                    </span>
+                                {% endif %}
                             </a>
                         </li>
                     {% endfor %}

@@ -1,20 +1,17 @@
 import json
 
-from asgiref.sync import async_to_sync
-from channels.generic.websocket import WebsocketConsumer, AsyncWebsocketConsumer
-from django.contrib.auth.models import User
-from .models import Message
+from channels.generic.websocket import AsyncWebsocketConsumer
 from asgiref.sync import sync_to_async
-from django.db import models
-from django.db.models import Q
-from datetime import datetime, date
 from django.utils import timezone
 from django.core.serializers.json import DjangoJSONEncoder
-from collections import defaultdict
-from channels.layers import get_channel_layer
 from django.contrib.auth.models import User
-
-
+from .models import Message
+from channels.layers import get_channel_layer
+from django.db.models import Q
+from datetime import datetime
+from django.utils import timezone
+from django.core.serializers.json import DjangoJSONEncoder
+from asgiref.sync import sync_to_async
 
 online_users = {}
 class ChatConsumer(AsyncWebsocketConsumer):
@@ -22,63 +19,56 @@ class ChatConsumer(AsyncWebsocketConsumer):
         self.room_name = self.scope['url_route']['kwargs']['room_name']
         self.room_group_name = 'chat_%s' % self.room_name
         self.user = self.scope['user']
-        self.notification_group_name = f"notification_{self.user.username}"
+        self.notification_group_name = f"notification_{self.user.username}"  #  Имя группы уведомлений
+
+        # Add to notification group
+        await self.channel_layer.group_add(
+            self.notification_group_name,
+            self.channel_name
+        )
 
         await self.channel_layer.group_add(
             self.room_group_name,
             self.channel_name
         )
-        await self.channel_layer.group_add( # Добавляем в группу уведомлений
-            self.notification_group_name,
-            self.channel_name
-        )
 
-        await self.accept()  # Сначала принимаем соединение
-
-        start_date_str = self.scope['query_string'].decode().split('&start_date=')[1].split('&')[0] if 'start_date=' in self.scope['query_string'].decode() else None
-        end_date_str = self.scope['query_string'].decode().split('&end_date=')[1].split('&')[0] if 'end_date=' in self.scope['query_string'].decode() else None
-
-        # Get message history
-        message_history = await self.get_message_history(start_date_str, end_date_str)
-
-        await self.mark_messages_as_read(self.scope['user'].username)
+        online_users[self.user.username] = {self.channel_name} # сет с channel_name
+        print(f"User {self.user.username} connected. Online users: {online_users}")
 
         # Send message history
-        await self.send(text_data=json.dumps({
-            'type': 'message_history',
-            'messages': message_history
-        }, cls=DjangoJSONEncoder))
-
-        # Добавляем пользователя в online_users при подключении
-        online_users[self.user.username] = {self.channel_name}
+        await self.send_online_users()
 
     async def disconnect(self, close_code):
         await self.channel_layer.group_discard(
             self.room_group_name,
             self.channel_name
         )
-        await self.channel_layer.group_discard( # Удаляем из группы уведомлений
+        # Remove from notification group
+        await self.channel_layer.group_discard(
             self.notification_group_name,
             self.channel_name
         )
-
-        # Удаляем пользователя из online_users при отключении
         if self.user.username in online_users:
             online_users[self.user.username].remove(self.channel_name)
             if not online_users[self.user.username]:
                 del online_users[self.user.username]
+        print(f"User {self.user.username} disconnected. Online users: {online_users}")
+
+        await self.send_online_users()
 
     async def receive(self, text_data):
         try:
             text_data_json = json.loads(text_data)
             message = text_data_json['message']
-            sender_username = self.scope['user'].username # Использовать имя пользователя из scope
+            sender_username = self.scope['user'].username
             recipient_username = self.room_name.replace(sender_username, '').replace('_','')
 
-            
+            print(f"Sender: {sender_username}, Recipient: {recipient_username}")
+            print(f"Online users: {online_users}")
 
             # Проверяем, есть ли recipient_username в online_users
             if recipient_username not in online_users:
+                print(f"Sending notification to {recipient_username}")
                 await self.send_notification(recipient_username, message)
             else:
                 print(f"Recipient {recipient_username} is online. Not sending notification.")
@@ -104,21 +94,26 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
 
     async def chat_message(self, event):
+        print(f"CHAT_MESSAGE: event={event}")
         message = event['message']
-        sender = event['sender']
+        sender_username = event['sender']
         timestamp = event['timestamp']
+        localized_timestamp = timezone.localtime(timezone.datetime.fromisoformat(timestamp))
+        formatted_timestamp = localized_timestamp.strftime('%H:%M %d.%m.%Y')
         start_date = event.get('start_date')
         end_date = event.get('end_date')
 
-        
-        
-        formatted_timestamp = timezone.datetime.fromisoformat(timestamp).strftime('%H:%M %d.%m.%Y')
+        # Получаем объект пользователя для получения first_name
+        user = await self.get_user(sender_username)
+        sender_first_name = user.first_name
+
 
         # Send the message to WebSocket
         await self.send(text_data=json.dumps({
             'type': 'new_message',
             'message': message,
-            'sender': sender,
+            'sender': sender_username,
+            'sender_first_name': sender_first_name,  # Добавляем first_name
             'timestamp': formatted_timestamp,
             'start_date': start_date,
             'end_date': end_date,
@@ -142,7 +137,23 @@ class ChatConsumer(AsyncWebsocketConsumer):
             'type': 'notification',
             'message': message,
         }))
+    async def send_online_users(self):
+        online_users_list = list(online_users.keys()) # Получаем список имен пользователей онлайн
 
+        await self.channel_layer.group_send(
+            self.room_group_name,
+            {
+                'type': 'update_online_users',
+                'users': online_users_list
+            }
+        )
+
+    async def update_online_users(self, event):
+        users = event['users']
+        await self.send(text_data=json.dumps({
+            'type': 'online_users',
+            'users': users
+        }))
 
     @sync_to_async
     def save_message(self, sender_username, room_name, message, start_date_str, end_date_str):
@@ -228,3 +239,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
 
         Message.objects.filter(sender=recipient, recipient=sender, is_read=False).update(is_read=True)
+
+    @sync_to_async
+    def get_user(self, username):
+        return User.objects.get(username=username)

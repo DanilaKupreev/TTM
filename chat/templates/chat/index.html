@@ -2,6 +2,7 @@
 <html>
 <head>
     {% load static %}
+    {% load chat_tags %}
     <meta charset="utf-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1">
 	<link rel="stylesheet" href="{% static 'chat/MainPage.css' %}">
@@ -21,8 +22,11 @@
                         <li>
                             <a href="{% url 'chat_view' %}?recipient={{ user.username }}">
                                 {{ user.first_name }}
-                                <span class="unread-indicator" id="unread-count-{{ user.username }}">
-                                </span>
+                                {% if user.username in unread_counts %}
+                                    <span class="unread-indicator" id="unread-count-{{ user.username }}">
+                                        ({{ unread_counts|get_item:user.username }})
+                                    </span>
+                                {% endif %}
                             </a>
                         </li>
                     {% endfor %}
@@ -31,6 +35,13 @@
             <section id="rightpanel">
                 {% block content %}
                     <h1>Чат с {{ recipient.first_name }}</h1>
+                    <form id="date-filter-form">
+                        <label for="start-date">Начальная дата:</label>
+                        <input type="date" id="start-date" name="start_date">
+                        <label for="end-date">Конечная дата:</label>
+                        <input type="date" id="end-date" name="end_date">
+                        <button type="submit">Фильтр</button>
+                    </form>
                     <div id="chat-log">
                         
                     </div>
@@ -44,21 +55,26 @@
     </main>
     <footer style="background-color: lightwhite; font-size: 0.6em; padding-left: 2em;">
     	<p>По вопросам в IT отдел</p>
+        <section id="online-users">
+            <h2>Онлайн:</h2>
+            <ul id="online-users-list">
+                </ul>
+        </section>
     </footer>
 
-
+    <script>
+        const username1 = "{{ user.username }}"; // Текущий пользователь
+        const username2 = "{{ recipient.username }}"; // Получатель
+    </script>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            const username1 = "{{ user.username }}";
-            const username2 = "{{ recipient }}";
             const date = new Date();
             const timestamp = date.toLocaleTimeString() + ' ' + date.toLocaleDateString();
-            
-            
-            const roomName = generateRoomName(username1, username2); // Функция для генерации roomName
-            console.log("WebSocket Room Name:", roomName); // <--- THIS IS CRITICAL
 
-            const chatSocket = new WebSocket(
+            const roomName = generateRoomName(username1, username2); // Функция для генерации roomName
+            console.log("WebSocket Room Name:", roomName);
+
+            let chatSocket = new WebSocket(
                 'ws://' + window.location.host + '/ws/chat/' + roomName + '/'
             );
 
@@ -67,23 +83,30 @@
                 return usernames[0] + '_' + usernames[1];
             }
 
-
-            function addMessageToChatLog(sender, message, timestamp, isHistory = false) {
-                
+            function addMessageToChatLog(data, isHistory = false) {
                 const chatLog = document.querySelector('#chat-log');
                 if (!chatLog) {
                     console.error("Chat log element not found!");
                     return;
                 }
 
+                let displayName;
+                if (data.sender === username1) {
+                    displayName = "Я"; // Отображаем "Я", если сообщение от текущего пользователя
+                } else {
+                    displayName = data.sender_first_name || data.sender; // Отображаем first_name или sender
+                }
+
                 const messageHTML = `
                     <div class="message ${isHistory ? 'history-message' : ''}">
-                        <b style="text-align: right; display: block; padding-top: 1em;">${escapeHTML(sender)}:</b></br> <pre style='white-space: pre-wrap; font-size: 1.2em;'>${escapeHTML(message)}</pre></br> <span class="timestamp" style="text-align: right;display: block;">(${escapeHTML(timestamp)})</span>
+                        <b style="text-align: right; display: block; padding-top: 1em;">${escapeHTML(displayName)}:</b></br>
+                        <pre style='white-space: pre-wrap; font-size: 1.2em;'>${escapeHTML(data.message)}</pre></br>
+                        <span class="timestamp" style="text-align: right;display: block;">(${escapeHTML(data.timestamp)})</span>
                     </div>
                 `;
 
                 chatLog.innerHTML += messageHTML;
-                chatLog.scrollTop = chatLog.scrollHeight; // Scroll to bottom
+                chatLog.scrollTop = chatLog.scrollHeight;
             }
 
             function escapeHTML(string) {
@@ -99,23 +122,15 @@
                     const data = JSON.parse(e.data);
                     const type = data.type;
 
-
                     if (type === 'message_history') {
-                        const messages = data.messages;
-                        messages.forEach(message => {
-                            const sender = message.sender;
-                            const messageText = message.message;
-                            const timestamp = message.timestamp;
-                            addMessageToChatLog(sender, messageText, timestamp, true); // Mark as history
-                        });
+                        // ...
+                    } else if (type === 'new_message') {
+                        // ...
+                    } else if (type === 'online_users') {
+                        updateOnlineUsers(data.users);
                     }
-                    else if (type === 'new_message') {
-                        const messageText = data.message;
-                        const sender = data.sender;
-                        const timestamp = data.timestamp;
-                        console.log("NEW_MESSAGE: sender=" + sender + ", message=" + messageText + ", timestamp=" + timestamp);
-                        addMessageToChatLog(sender, messageText, timestamp);
-                    } else if (type === 'notification') {
+                    else if (type === 'notification') {
+                        // Handle notification
                         showNotification(data.message);
                     }
                 } catch (error) {
@@ -145,26 +160,24 @@
                 const message = messageInput.value;
                 if (message.trim() !== "") {
                     chatSocket.send(JSON.stringify({
-                        'message': message,
-                        'sender': username1 // Or currentUsername, depending on your logic
+                        'message': message
                     }));
                     messageInput.value = '';
                 }
             };
 
-            function showNotification(message) {
-                alert("Новое сообщение: " + message); // Простое уведомление (замени на что-то лучше)
-                //  или
-                // console.log("NEW NOTIFICATION:" + message);
-
-                //  Более продвинутое уведомление:
-                //  1. Создать div элемент для уведомления
-                //  2. Добавить текст сообщения в элемент
-                //  3. Стилизовать элемент (например, position: fixed, top: 0, right: 0, background-color: ...)
-                //  4. Добавить элемент в DOM
-                //  5. Установить setTimeout для автоматического скрытия элемента через несколько секунд
+            function updateOnlineUsers(users) {
+                const onlineUsersList = document.getElementById('online-users-list');
+                onlineUsersList.innerHTML = ''; // Clear the list
+                users.forEach(user => {
+                    const li = document.createElement('li');
+                    li.textContent = user;
+                    onlineUsersList.appendChild(li);
+                });
             }
 
+            function showNotification(data) {
+            }
         });
     </script>
 </body>

@@ -4,6 +4,7 @@ from django.contrib.auth.models import User
 from .models import Message
 from django.db import models
 from django.db.models import Q
+from django.db.models import Count
 
 
 def get_room_name(user1, user2):
@@ -20,10 +21,16 @@ def chat_view(request):
     recipient = User.objects.get(username=recipient_username)
     firstname1 = recipient.first_name
     current_user = request.user
+    users = User.objects.exclude(id=current_user.id)
+
 
     room_name = get_room_name(current_user.username, recipient.username)
+    unread_counts = {}
+    for user in users:
+        unread_count = Message.objects.filter(sender=user, recipient=request.user, is_read=False).count()
+        unread_counts[user.username] = unread_count
 
-    users = User.objects.exclude(id=current_user.id)
+    
     total_messages_count = Message.objects.filter(
         (Q(sender=current_user, recipient=recipient) | Q(sender=recipient, recipient=current_user))
     ).count()
@@ -40,6 +47,7 @@ def chat_view(request):
         'recipient': recipient,
         'main': current_user.username,  # Передаем имя текущего пользователя
         'room_name': room_name,  # Передаем имя комнаты
+        'unread_counts': unread_counts,
         'recipient_username': recipient.username,
     }
     return render(request, 'chat/index.html', context)
@@ -49,9 +57,16 @@ def chat_view(request):
 def MainPage(request):
     users = User.objects.exclude(id=request.user.id)
     main = request.user.username
+
+    unread_counts = {}
+    for user in users:
+        unread_count = Message.objects.filter(sender=user, recipient=request.user, is_read=False).count()
+        unread_counts[user.username] = unread_count
+        
     context = {
         'users': users,
         'main': main,
+        'unread_counts': unread_counts,
     }
 
     return render(request, "chat/Mainpage.html", context)

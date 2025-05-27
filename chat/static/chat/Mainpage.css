@@ -82,7 +82,7 @@ button {
     width: 10em;
     border-radius: 1em;
     margin-left: 2px;
-    position: fixed;
+    position: sticky;
 }
 
 #chat-log::-webkit-scrollbar {
