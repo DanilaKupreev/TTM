@@ -7,7 +7,7 @@
 	<meta name="viewport" content="width=device-width, initial-scale=1">
 	<link rel="stylesheet" href="{% static 'chat/MainPage.css' %}">
 	<link rel="shortcut icon" href="{% static 'images/chat_icon.png' %}">
-    <title>Chat with {{ recipient.username }}</title>
+    <title>Час с {{ recipient.username }}</title>
 </head>
 <body>
     <header>
@@ -183,8 +183,47 @@
             }
 
             function showNotification(data) {
-                // Обработка уведомлений
+                if (("Notification" in window)) {
+                    Notification.requestPermission().then(function(permission) {
+                        if (permission === "granted") {
+                            var notification = new Notification("Новое сообщение!", {
+                                body: message,
+                                icon: '/static/images/icon.png' // Replace with your icon
+                            });
+
+                            notification.onclick = function() {
+                                window.focus(); // Focus the window if clicked
+                                notification.close();
+                            };
+                        }
+                    });
+                }
             }
+
+            function flashTitle(message) {
+                let originalTitle = document.title;
+                let timeoutId;
+
+                function alternateTitle() {
+                    document.title = (document.title === message) ? originalTitle : message;
+                    timeoutId = setTimeout(alternateTitle, 1000); // Change title every second
+                }
+
+                alternateTitle();
+
+                return function stopFlashing() {
+                    clearTimeout(timeoutId);
+                    document.title = originalTitle;
+                };
+            }
+
+            // Example usage:
+            let stopFlashing = flashTitle("New Message!");
+
+            // Call stopFlashing() when the user focuses on the window/tab
+            window.addEventListener('focus', function() {
+                stopFlashing();
+            });
         });
 
         document.getElementById('date-filter-form').addEventListener('submit', function(event) {
