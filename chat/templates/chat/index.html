@@ -221,6 +221,21 @@
             chatLog.innerHTML += messageHTML;
             chatLog.scrollTop = chatLog.scrollHeight;
         }
+
+        function updateOnlineUsers(users) {
+            // Get the element where you want to display the online users
+            const onlineUsersList = document.getElementById('online-users');
+
+            // Clear the current list
+            onlineUsersList.innerHTML = '';
+
+            // Loop through the users and create list items
+            users.forEach(user => {
+                const listItem = document.createElement('li');
+                listItem.textContent = user; // Or any other user info you want to display
+                onlineUsersList.appendChild(listItem);
+            });
+        }
     </script>
 </body>
 </html>
