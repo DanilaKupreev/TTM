@@ -14,9 +14,9 @@ def get_room_name(user1, user2):
 
 @login_required
 def chat_view(request):
-    recipient_username = request.GET.get('recipient')  # Получаем имя получателя из GET-параметра
+    recipient_username = request.GET.get('recipient')  # Имя получателя из GET-параметра
     if not recipient_username:
-        return redirect('chat')  # Если получатель не указан, возвращаемся на главную страницу чата
+        return redirect('chat')  
 
     recipient = User.objects.get(username=recipient_username)
     firstname1 = recipient.first_name
@@ -45,8 +45,8 @@ def chat_view(request):
         'users': users,
         'messages': messages,
         'recipient': recipient,
-        'main': current_user.username,  # Передаем имя текущего пользователя
-        'room_name': room_name,  # Передаем имя комнаты
+        'main': current_user.username,  # Имя текущего пользователя
+        'room_name': room_name,  # Имя комнаты
         'unread_counts': unread_counts,
         'recipient_username': recipient.username,
     }
