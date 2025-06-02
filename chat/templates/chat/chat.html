@@ -73,7 +73,7 @@
     	<p>По вопросам в IT отдел</p>
     </footer>
 <script>
-var requestUser = "{{ request_user }}"; // Получаем имя пользователя
+var requestUser = "{{ request_user }}"; 
 // ...
 
 function getCookie(name) {
@@ -82,7 +82,6 @@ function getCookie(name) {
         const cookies = document.cookie.split(';');
         for (let i = 0; i < cookies.length; i++) {
             let cookie = cookies[i].trim();
-            // Does this cookie string begin with the name we want?
             if (cookie.substring(0, name.length + 1) === (name + '=')) {
                 cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
                 break;
@@ -95,19 +94,19 @@ function getCookie(name) {
 
 function loadNewMessages() {
   try {
-    let lastMessageId; // Объявляем lastMessageId с помощью let
-    if ($('.message').length > 0) { // Проверяем, есть ли сообщения на странице
+    let lastMessageId; 
+    if ($('.message').length > 0) { // Есть ли сообщения на странице
       lastMessageId = $('.message').last().data('message-id');
     }
 
-    // Если сообщений нет, ничего не делаем
+    
     if (lastMessageId === undefined) {
       return;
     }
 
-    var messagesContainer = $('#messages-container'); // Определяем messagesContainer здесь
-    var isScrolledToBottom = isUserScrolledToBottom(messagesContainer); // Получаем значение здесь
-    const startDate = $('#start_date').val(); // Get start date value from input field
+    var messagesContainer = $('#messages-container'); // messagesContainer здесь
+    var isScrolledToBottom = isUserScrolledToBottom(messagesContainer); // Значение здесь
+    const startDate = $('#start_date').val(); 
     const endDate = $('#end_date').val();
 
     let url = `{% url "get_new_messages" recipient.username %}?last_message_id=${lastMessageId || ''}`;
@@ -126,7 +125,7 @@ function loadNewMessages() {
         $.each(data.messages, function(index, message) {
           var existingMessage = $(`[data-message-id="${message.id}"]`);
           if (existingMessage.length === 0) {
-            var unreadClass = message.is_read ? '' : 'unread-message'; // Определяем класс для непрочитанных сообщений
+            var unreadClass = message.is_read ? '' : 'unread-message'; 
             var messageHtml = `
               <div class="message {% if message.sender == request.user %}sent{% else %}received{% endif %} ${unreadClass}" data-message-id="${message.id}">
                 <p style="text-align: right;">${ message.sender.first_name }:</p><br/>
@@ -162,20 +161,19 @@ function isUserScrolledToBottom(messagesContainer) {
     return messagesContainer.scrollTop() + messagesContainer.innerHeight() >= messagesContainer[0].scrollHeight - tolerance;
 }
 
-// Создаём IntersectionObserver вне loadNewMessages
+
 const observer = new IntersectionObserver(entries => {
     entries.forEach(entry => {
         if (entry.isIntersecting && entry.target.classList.contains('received')) {
             const messageId = entry.target.dataset.messageId;
-            entry.target.dataset.isObserved = 'true'; // Помечаем сообщение как наблюдаемое
+            entry.target.dataset.isObserved = 'true'; 
             setTimeout(() => {
-                if (entry.target.dataset.isObserved === 'true') { // Проверяем, что сообщение все еще наблюдается
+                if (entry.target.dataset.isObserved === 'true') { 
                     markAsRead(messageId);
-                    observer.unobserve(entry.target); // Прекращаем наблюдение за этим сообщением
+                    observer.unobserve(entry.target); 
                 }
             }, 1000); // 1000 миллисекунд = 1 секунда
         } else {
-            // Если сообщение перестало быть видимым, отменяем отметку о прочтении
             entry.target.dataset.isObserved = 'false';
         }
     });
@@ -184,13 +182,13 @@ const observer = new IntersectionObserver(entries => {
 function markAsRead(messageId) {
     console.log("markAsRead called for messageId:", messageId);
 
-    const csrftoken = getCookie('csrftoken'); // Получаем CSRF-токен из cookie
+    const csrftoken = getCookie('csrftoken'); 
 
     $.ajax({
         url: `{% url 'mark_as_read' message_id=0 %}`.replace('0', messageId),
         type: 'POST',
         contentType: 'application/json',
-        beforeSend: function(xhr) { // Добавляем CSRF-токен в заголовок
+        beforeSend: function(xhr) { 
             xhr.setRequestHeader("X-CSRFToken", csrftoken);
         },
         success: function(data) {
@@ -203,13 +201,13 @@ function markAsRead(messageId) {
     });
 }
 
-// Добавляем все существующие сообщения в IntersectionObserver при загрузке страницы и прокручиваем вниз
+
 $(window).on('load', function() {
-    scrollToBottom($('#messages-container')); // Вызываем функцию при загрузке страницы
+    scrollToBottom($('#messages-container')); 
     const initialMessages = document.querySelectorAll('.message');
     initialMessages.forEach(message => {
         observer.observe(message);
-        message.dataset.observed = 'true'; // Помечаем сообщение, чтобы не добавлять его повторно
+        message.dataset.observed = 'true'; 
     });
 });
 
@@ -218,14 +216,14 @@ function flashTitle(newTitle, originalTitle) {
     let intervalId = setInterval(function() {
         document.title = isOriginal ? newTitle : originalTitle;
         isOriginal = !isOriginal;
-    }, 1000); // Меняем заголовок каждую секунду
+    }, 1000); 
 
-    return intervalId; // Возвращаем ID интервала, чтобы можно было остановить моргание
+    return intervalId; 
 }
 
 function stopFlashTitle(intervalId, originalTitle) {
     clearInterval(intervalId);
-    document.title = originalTitle; // Возвращаем исходный заголовок
+    document.title = originalTitle; 
 }
 
 
@@ -240,7 +238,7 @@ function changeFavicon(newFavicon) {
 let isLongPolling = false;
 
 function updateUnreadCountLongPolling(recipientUsername, lastCount) {
-    console.log("updateUnreadCountLongPolling called for:", recipientUsername); // Добавили лог
+    console.log("updateUnreadCountLongPolling called for:", recipientUsername); 
 
     $.ajax({
         url: '/get_unread_count_long_polling/',
@@ -256,7 +254,7 @@ function updateUnreadCountLongPolling(recipientUsername, lastCount) {
             console.log("Unread count:", unreadCount);
             const indicator = $(`#unread-count-${recipientUsername}`);
 
-            if (indicator.length > 0) { // Проверяем, что элемент существует
+            if (indicator.length > 0) { 
                 if (unreadCount > 0) {
                     indicator.text(unreadCount);
                     indicator.show();
@@ -282,14 +280,14 @@ function updateUnreadCountLongPolling(recipientUsername, lastCount) {
 }
 
 $(document).ready(function() {
-    console.log("document ready");  // Add this line
+    console.log("document ready");  
     $('.user-list a').each(function() {
-        const recipientUsername = $(this).attr('href').split('/').filter(Boolean).pop(); // Получаем имя пользователя из URL
+        const recipientUsername = $(this).attr('href').split('/').filter(Boolean).pop(); 
 
-        // Явно удаляем содержимое индикатора при первоначальной загрузке
-        $(`#unread-count-${recipientUsername}`).hide();  // Убираем hide
+        
+        $(`#unread-count-${recipientUsername}`).hide();  
 
-        updateUnreadCountLongPolling(recipientUsername, 0); // Начинаем с 0 непрочитанных сообщений
+        updateUnreadCountLongPolling(recipientUsername, 0); 
     });
 });
 
