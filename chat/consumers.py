@@ -111,7 +111,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
         user = await self.get_user(sender_username)
         sender_first_name = user.first_name
 
-        formatted_timestamp = timezone.datetime.fromisoformat(timestamp).strftime('%H:%M %d.%m.%Y')
+        formatted_timestamp = timezone.datetime.fromisoformat(timestamp).strftime('%H+3:%M %d.%m.%Y')
 
         # Send the message to WebSocket
         await self.send(text_data=json.dumps({
