@@ -20,7 +20,6 @@ class ChatConsumer(AsyncWebsocketConsumer):
         self.user = self.scope['user']
         self.notification_group_name = f"notification_{self.user.username}"  #  Имя группы уведомлений
 
-        # Add to notification group
         await self.accept()
         await self.channel_layer.group_add(
             self.notification_group_name,
@@ -35,21 +34,21 @@ class ChatConsumer(AsyncWebsocketConsumer):
         online_users[self.user.username] = {self.channel_name} # сет с channel_name
         print(f"User {self.user.username} connected. Online users: {online_users}")
 
-        # Send message history
+        
         await self.send_online_users()
         messages = await self.get_message_history()
         await self.send(text_data=json.dumps({
             'type': 'message_history',
             'messages': messages
         }, cls=DjangoJSONEncoder))
-        # Add this line
+        
 
     async def disconnect(self, close_code):
         await self.channel_layer.group_discard(
             self.room_group_name,
             self.channel_name
         )
-        # Remove from notification group
+        
         await self.channel_layer.group_discard(
             self.notification_group_name,
             self.channel_name
@@ -79,10 +78,10 @@ class ChatConsumer(AsyncWebsocketConsumer):
             else:
                 print(f"Recipient {recipient_username} is online. Not sending notification.")
 
-            # Save the message to the database
+            
             timestamp = await self.save_message(sender_username, self.room_name, message, None, None)
 
-            # Send the message to the group
+            
             await self.channel_layer.group_send(
                 self.room_group_name,
                 {
@@ -113,7 +112,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
         formatted_timestamp = timezone.datetime.fromisoformat(timestamp).strftime('%H+3:%M %d.%m.%Y')
 
-        # Send the message to WebSocket
+        
         await self.send(text_data=json.dumps({
             'type': 'new_message',
             'message': message,
@@ -137,7 +136,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
     async def notify(self, event):
         message = event['message']
 
-        # Send the message to WebSocket
+        
         await self.send(text_data=json.dumps({
             'type': 'notification',
             'message': message,
@@ -209,13 +208,13 @@ class ChatConsumer(AsyncWebsocketConsumer):
             (Q(sender=sender, recipient=recipient) | Q(sender=recipient, recipient=sender))
         ).order_by('timestamp')
 
-        # Create a copy of the QuerySet before slicing
-        messages_to_update = messages.all()  # Use .all() to create a copy
+        
+        messages_to_update = messages.all()  
 
-        # Apply the slice to the original QuerySet
+        
         messages = messages[start_index:]
 
-        # Mark messages as read here
+        
         messages_to_update.filter(recipient=sender, is_read=False).update(is_read=True)
 
         if start_date_str:

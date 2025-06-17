@@ -68,7 +68,7 @@
         const username1 = "{{ user.username }}";
         const username2 = "{{ recipient.username }}";
 
-        let chatSocket = null; // Declare and initialize chatSocket
+        let chatSocket = null; 
 
         document.addEventListener('DOMContentLoaded', function() {
             const roomName = generateRoomName(username1, username2);
@@ -108,7 +108,6 @@
                         }));
                     } else if (type === 'messages_read') {
                         console.log("Received messages_read event");
-                        // Find all unread messages and remove the 'unread' class
                         const unreadMessages = document.querySelectorAll('.message.unread');
                         unreadMessages.forEach(message => {
                             message.classList.remove('unread');
@@ -131,7 +130,7 @@
                 const messageInputDom = document.querySelector('#chat-message-input');
                 const message = messageInputDom.value;
                 chatSocket.send(JSON.stringify({
-                    'type': 'message', // Add type here
+                    'type': 'message', 
                     'message': message
                 }));
                 messageInputDom.value = '';
@@ -207,7 +206,6 @@
                 displayName = data.sender_first_name || data.sender;
             }
 
-            // Add 'unread' class if the message is unread and not sent by the current user
             let unreadClass = (!data.is_read && data.sender !== username1) ? 'unread' : '';
 
             const messageHTML = `
@@ -223,16 +221,14 @@
         }
 
         function updateOnlineUsers(users) {
-            // Get the element where you want to display the online users
             const onlineUsersList = document.getElementById('online-users');
 
-            // Clear the current list
             onlineUsersList.innerHTML = '';
 
-            // Loop through the users and create list items
+            
             users.forEach(user => {
                 const listItem = document.createElement('li');
-                listItem.textContent = user; // Or any other user info you want to display
+                listItem.textContent = user; 
                 onlineUsersList.appendChild(listItem);
             });
         }
